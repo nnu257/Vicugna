@@ -12,7 +12,7 @@
 
 ## 出力例
 - 当プログラムの最終出力は，ユーザが指定した銘柄群の株価予測結果と，そのグラフです．
-- datas/forecast/result.pngです．
+- datas/forecast/result.pngです．  
 ![出力例]()
 
 ## 特徴量
