@@ -18,9 +18,10 @@ import shap
 
 # 各種設定
 # DATA_USE_RATEは最大1で181万データ
-SEED = 1234
+SEED = 42
 MODEL = "GBM"
 DATA_USE_RATE = 1
+DO_SHAP = True
 
 # 実行時間計測
 start = time.time()
@@ -47,7 +48,9 @@ df_test = pd.DataFrame(flat_test, columns=columns).fillna(0)
 
 
 # 特徴量と目的パラメータの指定
-features = ['AdjustmentOpen',
+features = ['Code',
+            'Volume',
+            'AdjustmentOpen',
             'AdjustmentHigh',
             'AdjustmentLow',
             'AdjustmentClose',
@@ -58,8 +61,21 @@ features = ['AdjustmentOpen',
             'rsi_9',
             'rsi_14',
             'rsi_22',
+            #'psycological',
             'movingline_deviation_5',
             'movingline_deviation_25',
+            'bollinger25_p1',
+            'bollinger25_p2',
+            'bollinger25_p3',
+            'bollinger25_m1',
+            'bollinger25_m2',
+            'bollinger25_m3',
+            'FastK',
+            'FastD',
+            'SlowK',
+            'SlowD',
+            'momentum_rate_10',
+            'momentum_rate_20',
             'close_diff_rate1',
             'close_diff_rate5',
             'close_diff_rate25',
@@ -77,7 +93,7 @@ y_test = df_test[target]
 
 # 金融時系列データは過分散のため，ビニングしてロバストにする
 # KBinsDiscretizerを5分位等分布の設定で初期化，学習データでfit
-discretizer = KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='quantile')
+discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
 discretizer.fit(X_train)
 
 # 学習・評価データの特徴量を変換する
@@ -156,7 +172,7 @@ run_analytics(test_scores, "test.png")
 
 
 # SHAPによる特徴量の重要度のグラフ化
-if MODEL in ["GBM",]:
+if DO_SHAP:
     explainer = shap.Explainer(model)
     shap_values = explainer(X_test)
     shap.summary_plot(shap_values, X_test, show=False)
