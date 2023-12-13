@@ -3,24 +3,38 @@ import joblib
 import pandas as pd
 import numpy as np
 
+import time
+
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import KBinsDiscretizer
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 import lightgbm as lgb
 import shap
 
 
 # 各種設定
+# DATA_USE_RATEは最大1で181万データ
 SEED = 1234
-DO_SHAP = True
 MODEL = "GBM"
+DATA_USE_RATE = 1
+
+# 実行時間計測
+start = time.time()
 
 # 読み込み
-prices_normal = joblib.load('etc/prices_normal_sample.job')
+print("now loading datas...", flush=True, end="")
+prices_normal = joblib.load('etc/prices_normal.job')
+print("finished!")
+
+# データを分割して捨てる
+prices_normal, not_use = train_test_split(prices_normal, train_size=DATA_USE_RATE-1e-5, random_state=SEED)
 
 # 学習・評価データの分割(ランダムに銘柄で分割)
-train, test = train_test_split(prices_normal, test_size=0.25, random_state=SEED)
+train, test = train_test_split(prices_normal, test_size=0.2, random_state=SEED)
 
 # 銘柄でまとめてある配列を一次元化リスト化
 flat_train = [x for row in train for x in row]
@@ -63,7 +77,7 @@ y_test = df_test[target]
 
 # 金融時系列データは過分散のため，ビニングしてロバストにする
 # KBinsDiscretizerを5分位等分布の設定で初期化，学習データでfit
-discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
+discretizer = KBinsDiscretizer(n_bins=3, encode='ordinal', strategy='quantile')
 discretizer.fit(X_train)
 
 # 学習・評価データの特徴量を変換する
@@ -79,11 +93,29 @@ X_test = pd.DataFrame(X_test_binned, index=X_test.index, columns=[f"{feat}_binne
 if MODEL == "GBM":
     # LightGBM(決定木)
     model = lgb.LGBMRegressor(random_state=SEED, verbose=-1, max_depth=4)
+    
+    # 学習
     model.fit(X_train, y_train)
     
 elif MODEL == "NEURAL":
-    # ニューラルネットワーク
-    pass
+    
+    # パラメータ
+    LAYERS = 1
+    NODES = len(features)
+    BATCH_SIZE = 64
+    EPOCHS = 100
+    
+    # 深層ニューラルネットワーク
+    model = keras.Sequential()
+    for i in range(LAYERS):
+        model.add(layers.Dense(NODES, activation='relu', input_shape=(len(features),)))
+    model.add(layers.Dense(1))
+    
+    # モデルのコンパイル
+    model.compile(optimizer='adam', loss='mean_squared_error')
+
+    # モデルの学習
+    model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_split=0.2, verbose=0)
 
 # 訓練データでの予測値
 df_train['y_pred'] = model.predict(X_train)
@@ -98,11 +130,13 @@ def score(df, target='ret1', pred='y_pred'):
 
 def run_analytics(scores, figname):
     # 各統計値を計算
+    '''
     print(f"Mean Correlation: {scores.mean():.4f}")
     print(f"Median Correlation: {scores.median():.4f}")
     print(f"Standard Deviation: {scores.std():.4f}")
     print(f"Mean Pseudo-Sharpe: {scores.mean()/scores.std():.4f}")
     print(f"Median Pseudo-Sharpe: {scores.median()/scores.std():.4f}")
+    '''
     print(f'Hit Rate (% positive eras): {scores.apply(lambda x: np.sign(x)).value_counts()[1]/len(scores):.2%}\n')
 
     # rooling/era 相関係数をグラフ化
@@ -122,8 +156,12 @@ run_analytics(test_scores, "test.png")
 
 
 # SHAPによる特徴量の重要度のグラフ化
-if DO_SHAP:
+if MODEL in ["GBM",]:
     explainer = shap.Explainer(model)
     shap_values = explainer(X_test)
     shap.summary_plot(shap_values, X_test, show=False)
     plt.savefig("datas/graphs/features_shap.png")
+    
+# 実行時間
+end = time.time()
+print(end-start)
