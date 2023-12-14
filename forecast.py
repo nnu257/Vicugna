@@ -1,19 +1,18 @@
 import joblib
 
 import pandas as pd
-import numpy as np
 
 import time
 
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import KBinsDiscretizer
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import lightgbm as lgb
 import shap
+
+import mylib_stock2
 
 
 # 各種設定
@@ -92,13 +91,8 @@ y_train = df_train[target]
 y_test = df_test[target]
 
 # 金融時系列データは過分散のため，ビニングしてロバストにする
-# KBinsDiscretizerを5分位等分布の設定で初期化，学習データでfit
-discretizer = KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')
-discretizer.fit(X_train)
-
-# 学習・評価データの特徴量を変換する
-X_train_binned = discretizer.transform(X_train)
-X_test_binned = discretizer.transform(X_test)
+# KBinsDiscretizerを5分位等分布の設定で利用
+X_train_binned, X_test_binned = mylib_stock2.binning(X_train, X_test)
 
 # 新たにdfを上書き
 X_train = pd.DataFrame(X_train_binned, index=X_train.index, columns=[f"{feat}_binned" for feat in features])
@@ -114,7 +108,6 @@ if MODEL == "GBM":
     model.fit(X_train, y_train)
     
 elif MODEL == "NEURAL":
-    
     # パラメータ
     LAYERS = 1
     NODES = len(features)
@@ -139,36 +132,14 @@ df_train['y_pred'] = model.predict(X_train)
 df_test['y_pred'] = model.predict(X_test)
 
 
-def score(df, target='ret1', pred='y_pred'):   
-    # 学習・評価データそれぞれにおけるtargetとpredの相関係数を計測
-    corrcoef = np.corrcoef(df[target].fillna(0),df[pred].rank(pct=True, method="first"))[0,1]
-    return corrcoef
-
-def run_analytics(scores, figname):
-    # 各統計値を計算
-    print(f"Mean Correlation: {scores.mean():.4f}")
-    print(f"Median Correlation: {scores.median():.4f}")
-    '''
-    print(f"Standard Deviation: {scores.std():.4f}")
-    print(f"Mean Pseudo-Sharpe: {scores.mean()/scores.std():.4f}")
-    print(f"Median Pseudo-Sharpe: {scores.median()/scores.std():.4f}")
-    '''
-    print(f'Hit Rate (% positive eras): {scores.apply(lambda x: np.sign(x)).value_counts()[1]/len(scores):.2%}\n')
-
-    # rooling/era 相関係数をグラフ化
-    scores.rolling(10).mean().plot(kind='line', title='Rolling Per Era Correlation Mean', figsize=(15,4))
-    plt.axhline(y=0.0, color="r", linestyle="--")
-    plt.savefig(f'datas/graphs/{figname}')
-    plt.clf()
-
 # 学習・評価データの分析結果を出力
 print('--- Train Score ---')
-train_scores = df_train.groupby('Date').apply(score)
-run_analytics(train_scores, "train.png")
+train_scores = df_train.groupby('Date').apply(mylib_stock2.score)
+mylib_stock2.run_analytics(train_scores, "train.png")
 
 print('--- Test Score ---')
-test_scores = df_test.groupby('Date').apply(score)
-run_analytics(test_scores, "test.png")
+test_scores = df_test.groupby('Date').apply(mylib_stock2.score)
+mylib_stock2.run_analytics(test_scores, "test.png")
 
 
 # SHAPによる特徴量の重要度のグラフ化
