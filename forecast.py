@@ -18,7 +18,7 @@ import shap
 
 # 各種設定
 # DATA_USE_RATEは最大1で181万データ
-SEED = 42
+SEED = 1234
 MODEL = "GBM"
 DATA_USE_RATE = 1
 DO_SHAP = True
@@ -146,9 +146,9 @@ def score(df, target='ret1', pred='y_pred'):
 
 def run_analytics(scores, figname):
     # 各統計値を計算
-    '''
     print(f"Mean Correlation: {scores.mean():.4f}")
     print(f"Median Correlation: {scores.median():.4f}")
+    '''
     print(f"Standard Deviation: {scores.std():.4f}")
     print(f"Mean Pseudo-Sharpe: {scores.mean()/scores.std():.4f}")
     print(f"Median Pseudo-Sharpe: {scores.median()/scores.std():.4f}")
