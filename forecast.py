@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from tensorflow.keras import layers
 import lightgbm as lgb
+from sklearn.linear_model import LinearRegression
 import shap
 
 import mylib_stock2
@@ -18,9 +19,10 @@ import mylib_stock2
 # 各種設定
 # DATA_USE_RATEは最大1で181万データ
 SEED = 1234
-MODEL = "GBM"
+MODEL = "ENSEMBLE_GBM"
+ENSEMBLE_NUM = 3 # < 4
 DATA_USE_RATE = 1
-DO_SHAP = True
+DO_SHAP = False
 
 # 実行時間計測
 start = time.time()
@@ -60,7 +62,7 @@ features = ['Code',
             'rsi_9',
             'rsi_14',
             'rsi_22',
-            #'psycological',
+            'psycological',
             'movingline_deviation_5',
             'movingline_deviation_25',
             'bollinger25_p1',
@@ -102,11 +104,50 @@ X_test = pd.DataFrame(X_test_binned, index=X_test.index, columns=[f"{feat}_binne
 # モデルの初期化と学習
 if MODEL == "GBM":
     # LightGBM(決定木)
-    model = lgb.LGBMRegressor(random_state=SEED, verbose=-1, max_depth=4)
+    model = lgb.LGBMRegressor(random_state=SEED, verbose=-1, max_depth=5)
     
     # 学習
     model.fit(X_train, y_train)
     
+    # 予測
+    df_train['y_pred'] = model.predict(X_train)
+    df_test['y_pred'] = model.predict(X_test)
+    
+elif MODEL == "ENSEMBLE_GBM":
+    tmp_train_pred = pd.Series([0]*len(X_train))
+    print(len(tmp_train_pred))
+    tmp_test_pred = pd.Series([0]*len(X_test))
+    
+    # 複数のGBMのアンサンブル
+    for i in range(ENSEMBLE_NUM):
+        model = lgb.LGBMRegressor(random_state=SEED, verbose=-1, max_depth=5+i%3)
+        model.fit(X_train, y_train)
+        tmp_train_pred += model.predict(X_train)
+        tmp_test_pred += model.predict(X_test)
+        
+    df_train['y_pred'] = tmp_train_pred/ENSEMBLE_NUM
+    df_test['y_pred'] = tmp_test_pred/ENSEMBLE_NUM
+    
+elif MODEL == "LR":
+    # Linear Regression(線形回帰)
+    model = LinearRegression()
+    
+    # 学習
+    model.fit(X_train, y_train)
+    
+    # 予測
+    df_train['y_pred'] = model.predict(X_train)
+    df_test['y_pred'] = model.predict(X_test)
+    
+elif MODEL == "ENSEMBLE_GBM_LR":
+    # LRとGBMのアンサンブル
+    model1 = lgb.LGBMRegressor(random_state=SEED, verbose=-1, max_depth=5)
+    model2 = LinearRegression()
+    model1.fit(X_train, y_train)
+    model2.fit(X_train, y_train)
+    df_train['y_pred'] = (3*model1.predict(X_train) + model2.predict(X_train))/4
+    df_test['y_pred'] = (3*model1.predict(X_test) + model2.predict(X_test))/4
+        
 elif MODEL == "NEURAL":
     # パラメータ
     LAYERS = 1
@@ -125,11 +166,10 @@ elif MODEL == "NEURAL":
 
     # モデルの学習
     model.fit(X_train, y_train, epochs=EPOCHS, batch_size=BATCH_SIZE, validation_split=0.2, verbose=0)
-
-# 訓練データでの予測値
-df_train['y_pred'] = model.predict(X_train)
-# テストデータでの予測値
-df_test['y_pred'] = model.predict(X_test)
+    
+    # 予測
+    df_train['y_pred'] = model.predict(X_train)
+    df_test['y_pred'] = model.predict(X_test)
 
 
 # 学習・評価データの分析結果を出力
