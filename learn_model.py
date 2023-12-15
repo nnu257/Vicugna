@@ -82,8 +82,7 @@ features = ['Code',
             'close_diff_rate5',
             'close_diff_rate25',
             'volatility5',
-            'volatility25',
-            'volatility60']
+            'volatility25']
 
 target = ['ret1']
 
