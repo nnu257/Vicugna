@@ -116,7 +116,7 @@ if MODEL == "GBM":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/model.job")
+        joblib.dump(model, "etc/models/model.job")
     
 elif MODEL == "ENSEMBLE_GBM":
     tmp_train_pred = pd.Series([0]*len(X_train))
@@ -130,7 +130,7 @@ elif MODEL == "ENSEMBLE_GBM":
         tmp_train_pred += model.predict(X_train)
         tmp_test_pred += model.predict(X_test)
         if SAVE_MODEL:
-            joblib.dump(model, f"etc/model{i+1}.job")
+            joblib.dump(model, f"etc/models/model{i+1}.job")
         
     df_train['y_pred'] = tmp_train_pred/ENSEMBLE_NUM
     df_test['y_pred'] = tmp_test_pred/ENSEMBLE_NUM
@@ -148,7 +148,7 @@ elif MODEL == "LR":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/model.job")
+        joblib.dump(model, "etc/models/model.job")
     
 elif MODEL == "ENSEMBLE_GBM_LR":
     # LRとGBMのアンサンブル
@@ -159,8 +159,8 @@ elif MODEL == "ENSEMBLE_GBM_LR":
     df_train['y_pred'] = (3*model1.predict(X_train) + model2.predict(X_train))/4
     df_test['y_pred'] = (3*model1.predict(X_test) + model2.predict(X_test))/4
     if SAVE_MODEL:
-        joblib.dump(model1, "etc/model1.job")
-        joblib.dump(model2, "etc/model2.job")
+        joblib.dump(model1, "etc/models/model1.job")
+        joblib.dump(model2, "etc/models/model2.job")
         
 elif MODEL == "NEURAL":
     # パラメータ
@@ -187,7 +187,7 @@ elif MODEL == "NEURAL":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/model.job")
+        joblib.dump(model, "etc/models/model.job")
 
 
 # 学習・評価データの分析結果を出力

@@ -45,8 +45,8 @@
 ```
 cd Vicugna
 mkdir etc
-cd datas
-mkdir 
+cd etc
+mkdir models
 ```
 3. J-Quantsなどから株価データをダウンロードし，次節の形式に整形してetc/に置く  
 *ダウンロードの方法については，私のリポジトリKagutuchiや，他のチュートリアルを参考に．  
