@@ -7,8 +7,8 @@ import time
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from tensorflow import keras
-from tensorflow.keras import layers
+#from tensorflow import keras
+#from tensorflow.keras import layers
 import lightgbm as lgb
 from sklearn.linear_model import LinearRegression
 import shap
@@ -23,7 +23,8 @@ MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
 DATA_USE_RATE = 1
 DO_SHAP = False
-SAVE_MODEL =  True
+SAVE_MODEL = True
+FORECAST = 2
 
 # 実行時間計測
 start = time.time()
@@ -44,7 +45,7 @@ flat_train = [x for row in train for x in row]
 flat_test = [x for row in test for x in row]
 
 # 各データセットをdf化
-columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1']
+columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1', 'ret2']
 df_train = pd.DataFrame(flat_train, columns=columns).fillna(0)
 df_test = pd.DataFrame(flat_test, columns=columns).fillna(0)
 
@@ -84,7 +85,7 @@ features = ['Code',
             'volatility5',
             'volatility25']
 
-target = ['ret1']
+target = [f'ret{FORECAST}']
 
 # 学習・評価データの選択
 X_train = df_train[features]
@@ -159,7 +160,8 @@ elif MODEL == "ENSEMBLE_GBM_LR":
     if SAVE_MODEL:
         joblib.dump(model1, "etc/models/model1.job")
         joblib.dump(model2, "etc/models/model2.job")
-        
+
+'''    
 elif MODEL == "NEURAL":
     # パラメータ
     LAYERS = 1
@@ -186,15 +188,20 @@ elif MODEL == "NEURAL":
     # モデルの保存
     if SAVE_MODEL:
         joblib.dump(model, "etc/models/model.job")
+'''
 
+target = target[0]
+pred = 'y_pred'
+
+print(f"model learning finished: target={target}, pred={pred}")
 
 # 学習・評価データの分析結果を出力
 print('--- Train Score ---')
-train_scores = df_train.groupby('Date').apply(mylib_stock2.score)
+train_scores = df_train.groupby('Date').apply(mylib_stock2.score, target=target, pred=pred)
 mylib_stock2.run_analytics(train_scores, "train.png")
 
 print('--- Test Score ---')
-test_scores = df_test.groupby('Date').apply(mylib_stock2.score)
+test_scores = df_test.groupby('Date').apply(mylib_stock2.score, target=target, pred=pred)
 mylib_stock2.run_analytics(test_scores, "test.png")
 
 

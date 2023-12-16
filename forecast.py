@@ -4,9 +4,7 @@ import lightgbm as lgb
 import requests
 import time
 from tqdm import tqdm
-import sys
 from bs4 import BeautifulSoup
-import pprint
 
 import mylib_stock_copy
 
@@ -17,6 +15,7 @@ ENSEMBLE_NUM = 3 # < 4
 DO_SCRAPING = True
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
+FORECAST = 2
 
 
 def fetch(url):
@@ -26,7 +25,7 @@ def fetch(url):
 
 # 株価データのスクレイピング(最新30日分を用意)
 codes_normal = joblib.load('etc/codes_normal.job')
-codes_normal = codes_normal[0:2]
+codes_normal = codes_normal[0:100]
 
 if DO_SCRAPING:
     # 株価データのリスト
@@ -43,13 +42,14 @@ if DO_SCRAPING:
     if codes_anomaly:
         print("以下のコードがスクレイピングされていません．上場廃止などを確認してください．")
         print(", ".join([str(code) for code in codes_anomaly]))
-        
-    # メイン表の日時を取り出すパターン
-    pattern_mr = r">(.+?)</time>"
     
     # 株価などを取り出す
+    codes_anomaly = []
     for response, code in responses:
-    
+        
+        # 30日のうち，1日でも取引高が0になっているものは除く
+        no_trade = False
+
         soup = BeautifulSoup(response.text, "lxml")
 
         # 当日情報の表 本体
@@ -62,6 +62,9 @@ if DO_SCRAPING:
                     for value in today_table_body.find_all("td")[0:4]]
         volume = [today_table_body.find_all("td")[6].string.replace(",", "")]
         today_record = date + values + volume
+        
+        if volume[0] == "0":
+            no_trade = True
 
         # メイン表
         main_table_body = soup.select(
@@ -76,6 +79,9 @@ if DO_SCRAPING:
             values = [value.string.replace(",", "")
                         for value in record.find_all("td")[0:4]]
             volume = [record.find_all("td")[6].string.replace(",", "")]
+            
+            if volume[0] == "0":
+                no_trade = True
 
             value_record = date + values + volume
             main_table_recors_value.append(value_record)
@@ -86,6 +92,18 @@ if DO_SCRAPING:
         # 全体表に追加
         prices_normal_not_indices_30.append([table, code])
         
+        # 取引が一日でもなかったものは除く
+        if no_trade:
+            codes_anomaly.append(code)
+
+     
+# codes_anomaly内にある銘柄は削除
+if codes_anomaly:
+    print("以下の銘柄は取引高が0の日があるため，予測の対象外です．")
+    print(", ".join([str(code) for code in codes_anomaly]))
+    
+    codes_normal = [x for x in codes_normal if x not in codes_anomaly]
+    prices_normal_not_indices_30 = [x for x in prices_normal_not_indices_30 if x[1] not in codes_anomaly]
 
 # modelのデータ形式に合わせてデータを整形
 for i, code_prices in enumerate(prices_normal_not_indices_30):
@@ -121,7 +139,7 @@ for i in range(len(prices_normal_indices_30)):
 
 
 # df化
-columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1_forecast']
+columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1_forecast', 'ret2_forecast']
 df_real = pd.DataFrame(prices_normal_indices_30, columns=columns).fillna(0)
 
 # 特徴量と目的パラメータの指定
@@ -186,9 +204,9 @@ if MODEL == "ENSEMBLE_GBM":
     for i in range(ENSEMBLE_NUM):
         tmp_real_pred += models[i].predict(X_real)
         
-    df_real['ret1_forecast'] = tmp_real_pred/ENSEMBLE_NUM
+    df_real[f'ret{FORECAST}_forecast'] = tmp_real_pred/ENSEMBLE_NUM
     
 
 # 予測結果の出力
-df_real = df_real[["Date", "Code", "ret1_forecast"]].sort_values("ret1_forecast", ascending=False)
+df_real = df_real[["Date", "Code", f"ret{FORECAST}_forecast"]].sort_values(f"ret{FORECAST}_forecast", ascending=False)
 print(df_real)

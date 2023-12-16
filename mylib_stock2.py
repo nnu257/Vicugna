@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import KBinsDiscretizer
 import joblib
 
-def score(df, target='ret1', pred='y_pred'):   
+def score(df, target, pred):   
     # 学習・評価データそれぞれにおけるtargetとpredの相関係数を計測
     corrcoef = np.corrcoef(df[target].fillna(0),df[pred].rank(pct=True, method="first"))[0,1]
     return corrcoef
