@@ -119,7 +119,6 @@ if MODEL == "GBM":
     
 elif MODEL == "ENSEMBLE_GBM":
     tmp_train_pred = pd.Series([0]*len(X_train))
-    print(len(tmp_train_pred))
     tmp_test_pred = pd.Series([0]*len(X_test))
     
     # 複数のGBMのアンサンブル

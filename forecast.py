@@ -8,6 +8,8 @@ import sys
 from bs4 import BeautifulSoup
 import pprint
 
+import mylib_stock_copy
+
 
 # 各種設定
 MODEL = "ENSEMBLE_GBM"
@@ -22,17 +24,6 @@ def fetch(url):
     return requests.get(url)
 
 
-# モデルの読み込み
-print("loading models...", end="", flush=True)
-if MODEL == "ENSEMBLE_GBM":
-    models = [joblib.load(f"etc/models/model{i+1}.job") for i in range(ENSEMBLE_NUM)]
-elif MODEL == "ENSEMBLE_GBM_LR":
-    models = [joblib.load(f"etc/models/model1.job"), joblib.load(f"etc/models/model2.job")]
-else:
-    models = [joblib.load(f"etc/models/model.job")]
-print("finished!")
-
-
 # 株価データのスクレイピング(最新30日分を用意)
 codes_normal = joblib.load('etc/codes_normal.job')
 codes_normal = codes_normal[0:2]
@@ -42,9 +33,8 @@ if DO_SCRAPING:
     prices_normal_not_indices_30 = []
     
     # コードを結合したURLのレスポンスを取得
-    print("fetching responses...")
     responses = []
-    for code in tqdm(codes_normal):
+    for code in tqdm(codes_normal, desc="Fetching responses..."):
         responses.append([fetch(KABUTAN_URL + str(code)[:-1]), code])
         time.sleep(DELAY)
     
@@ -105,8 +95,100 @@ for i, code_prices in enumerate(prices_normal_not_indices_30):
     for j, day_price in enumerate(day_prices):
         date, open, high, low, close, volume = day_price
         # レコードごとにデータを追加
-        prices_normal_not_indices_30[i][0][j] = [0, date, code, open, high, low, close, 0, 0, volume, 0, open, high, low, close, volume]
+        # カブタンから取得するため，予測に使用していないnum, limits, turnovervalue, adjfactorは0とし, 影響が小さいadjpricesはpricesとしている
+        prices_normal_not_indices_30[i][0][j] = [0, date, code, open, high, low, close, 0, 0, volume, 0, 0, open, high, low, close, volume]
+    
+# price_normal_not_indices_30から余分な銘柄コードの情報を抜く
+# [[[day_price, *m], code], *n] -> [[day_price, *m], *n]
+for i in range(len(prices_normal_not_indices_30)):
+    prices_normal_not_indices_30[i] = prices_normal_not_indices_30[i][0]
+
+# データは日付の列以外，全てintかfloatにする
+for i in tqdm(range(len(prices_normal_not_indices_30)), desc="Changing type..."):
+    prices_normal_not_indices_30[i] = [[mylib_stock_copy.change_type(prices_normal_not_indices_30[i][j][k], k) for k in range(17)] for j in range(len(prices_normal_not_indices_30[i]))]
+
+# カブタンは上から新しい順なので，並び替える
+prices_normal_not_indices_30 = [list(reversed(x)) for x in prices_normal_not_indices_30]
+
+
+# テクニカル指標の計算
+# 本来はopenとhighの列だけでできるが，自作ライブラリを利用するため，形式を合わせて渡す
+prices_normal_indices_30 = mylib_stock_copy.calculate_indices(codes_normal, prices_normal_not_indices_30)
+
+# 各銘柄の最新日付のレコードのみ取得
+for i in range(len(prices_normal_indices_30)):
+    prices_normal_indices_30[i] = prices_normal_indices_30[i][-1]
+
+
+# df化
+columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1_forecast']
+df_real = pd.DataFrame(prices_normal_indices_30, columns=columns).fillna(0)
+
+# 特徴量と目的パラメータの指定
+features = ['Code',
+            'Volume',
+            'AdjustmentOpen',
+            'AdjustmentHigh',
+            'AdjustmentLow',
+            'AdjustmentClose',
+            'AdjustmentVolume',
+            'movingvolume_10',
+            'macd',
+            'signal',
+            'rsi_9',
+            'rsi_14',
+            'rsi_22',
+            'psycological',
+            'movingline_deviation_5',
+            'movingline_deviation_25',
+            'bollinger25_p1',
+            'bollinger25_p2',
+            'bollinger25_p3',
+            'bollinger25_m1',
+            'bollinger25_m2',
+            'bollinger25_m3',
+            'FastK',
+            'FastD',
+            'SlowK',
+            'SlowD',
+            'momentum_rate_10',
+            'momentum_rate_20',
+            'close_diff_rate1',
+            'close_diff_rate5',
+            'close_diff_rate25',
+            'volatility5',
+            'volatility25']
+
+# 予測データの選択
+X_real = df_real[features]
+
+# ビニング
+discretizer = joblib.load("etc/discretizer.job")
+X_real_binned = discretizer.transform(X_real)
+X_real = pd.DataFrame(X_real_binned, index=X_real.index, columns=[f"{feat}_binned" for feat in features])
+
+
+# モデルの読み込み
+print("loading models...", end="", flush=True)
+if MODEL == "ENSEMBLE_GBM":
+    models = [joblib.load(f"etc/models/model{i+1}.job") for i in range(ENSEMBLE_NUM)]
+elif MODEL == "ENSEMBLE_GBM_LR":
+    models = [joblib.load(f"etc/models/model1.job"), joblib.load(f"etc/models/model2.job")]
+else:
+    models = [joblib.load(f"etc/models/model.job")]
+print("finished!")
+
+# モデルを用いた予測
+if MODEL == "ENSEMBLE_GBM":
+    tmp_real_pred = pd.Series([0]*len(X_real))
+    
+    # 複数のGBMのアンサンブル
+    for i in range(ENSEMBLE_NUM):
+        tmp_real_pred += models[i].predict(X_real)
+        
+    df_real['ret1_forecast'] = tmp_real_pred/ENSEMBLE_NUM
     
 
-
-pprint.pprint(prices_normal_not_indices_30)
+# 予測結果の出力
+df_real = df_real[["Date", "Code", "ret1_forecast"]].sort_values("ret1_forecast", ascending=False)
+print(df_real)

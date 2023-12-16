@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import KBinsDiscretizer
+import joblib
 
 def score(df, target='ret1', pred='y_pred'):   
     # 学習・評価データそれぞれにおけるtargetとpredの相関係数を計測
@@ -28,7 +29,10 @@ def binning(X_train, X_test, n_bins=5, encode='ordinal', strategy='quantile'):
     # ビニングモデルの初期化とfit, transform
     discretizer = KBinsDiscretizer(n_bins=n_bins, encode=encode, strategy=strategy)
     discretizer.fit(X_train)
-
+    
+    # 予測用に保存
+    joblib.dump(discretizer, "etc/discretizer.job")
+    
     # 学習・評価データの特徴量を変換する
     X_train_binned = discretizer.transform(X_train)
     X_test_binned = discretizer.transform(X_test)
