@@ -50,6 +50,9 @@
 2. 必要なディレクトリを作成
 ```
 cd Vicugna
+cd datas
+mkdir output
+cd ..
 mkdir etc
 cd etc
 mkdir models

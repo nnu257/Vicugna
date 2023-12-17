@@ -24,7 +24,7 @@ ENSEMBLE_NUM = 3 # < 4
 DATA_USE_RATE = 1
 DO_SHAP = False
 SAVE_MODEL = True
-FORECAST = 2
+FORECAST = 1
 
 # 実行時間計測
 start = time.time()
@@ -93,6 +93,9 @@ X_test = df_test[features]
 y_train = df_train[target]
 y_test = df_test[target]
 
+target = target[0]
+pred = 'y_pred'
+
 # 金融時系列データは過分散のため，ビニングしてロバストにする
 # KBinsDiscretizerを5分位等分布の設定で利用
 X_train_binned, X_test_binned = mylib_stock2.binning(X_train, X_test)
@@ -116,7 +119,7 @@ if MODEL == "GBM":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/models/model.job")
+        joblib.dump(model, f"etc/models/model_{target}.job")
     
 elif MODEL == "ENSEMBLE_GBM":
     tmp_train_pred = pd.Series([0]*len(X_train))
@@ -129,7 +132,7 @@ elif MODEL == "ENSEMBLE_GBM":
         tmp_train_pred += model.predict(X_train)
         tmp_test_pred += model.predict(X_test)
         if SAVE_MODEL:
-            joblib.dump(model, f"etc/models/model{i+1}.job")
+            joblib.dump(model, f"etc/models/model_{target}_{i+1}.job")
         
     df_train['y_pred'] = tmp_train_pred/ENSEMBLE_NUM
     df_test['y_pred'] = tmp_test_pred/ENSEMBLE_NUM
@@ -147,7 +150,7 @@ elif MODEL == "LR":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/models/model.job")
+        joblib.dump(model, f"etc/models/model_{target}.job")
     
 elif MODEL == "ENSEMBLE_GBM_LR":
     # LRとGBMのアンサンブル
@@ -158,8 +161,8 @@ elif MODEL == "ENSEMBLE_GBM_LR":
     df_train['y_pred'] = (3*model1.predict(X_train) + model2.predict(X_train))/4
     df_test['y_pred'] = (3*model1.predict(X_test) + model2.predict(X_test))/4
     if SAVE_MODEL:
-        joblib.dump(model1, "etc/models/model1.job")
-        joblib.dump(model2, "etc/models/model2.job")
+        joblib.dump(model1, f"etc/models/model_{target}_1.job")
+        joblib.dump(model2, f"etc/models/model_{target}_2.job")
 
 '''    
 elif MODEL == "NEURAL":
@@ -187,11 +190,8 @@ elif MODEL == "NEURAL":
     
     # モデルの保存
     if SAVE_MODEL:
-        joblib.dump(model, "etc/models/model.job")
+        joblib.dump(model, f"etc/models/model_{target}.job")
 '''
-
-target = target[0]
-pred = 'y_pred'
 
 print(f"model learning finished: target={target}, pred={pred}")
 

@@ -5,6 +5,8 @@ import requests
 import time
 from tqdm import tqdm
 from bs4 import BeautifulSoup
+import random
+import datetime
 
 import mylib_stock_copy
 
@@ -15,7 +17,9 @@ ENSEMBLE_NUM = 3 # < 4
 DO_SCRAPING = True
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
-FORECAST = 2
+SORT_FORECAST = 2
+SEED = 1234
+today = datetime.datetime.now() + datetime.timedelta(hours=9)
 
 
 def fetch(url):
@@ -23,13 +27,16 @@ def fetch(url):
     return requests.get(url)
 
 
-# 株価データのスクレイピング(最新30日分を用意)
+# 銘柄リスト
 codes_normal = joblib.load('etc/codes_normal.job')
-codes_normal = codes_normal[0:100]
 
+# 現時点ではフォワードテストを少ししたいので，ランダムに抽出した銘柄について予測，記録
+random.seed(SEED)
+codes_normal = random.sample(codes_normal, 300)
+codes_normal = ["33490", "33470"]
+
+# 株価データのスクレイピング(最新30日分を用意)
 if DO_SCRAPING:
-    # 株価データのリスト
-    prices_normal_not_indices_30 = []
     
     # コードを結合したURLのレスポンスを取得
     responses = []
@@ -37,20 +44,38 @@ if DO_SCRAPING:
         responses.append([fetch(KABUTAN_URL + str(code)[:-1]), code])
         time.sleep(DELAY)
     
-    # 株価の上場廃止をチェック
-    codes_anomaly = [response[1] for response in responses if "該当する銘柄は見つかりませんでした" in response[0].text]
-    if codes_anomaly:
-        print("以下のコードがスクレイピングされていません．上場廃止などを確認してください．")
-        print(", ".join([str(code) for code in codes_anomaly]))
+    # 銘柄コードの誤りと，ページが存在しない，かなり前に上場廃止した企業を除く
+    codes_error = [response[1] for response in responses if "該当する銘柄は見つかりませんでした" in response[0].text]
+    
+    # codes_error内にある銘柄は削除, 出力は他のものとまとめて行う
+    if codes_error:
+        codes_normal = [x for x in codes_normal if x not in codes_error]
+        responses = [response for response in responses if response[1] not in codes_error]
     
     # 株価などを取り出す
-    codes_anomaly = []
+    prices_normal_not_indices_30 = []
+    # codes_no_tradeは取引がない銘柄，codes_abolitionは上場廃止銘柄
+    codes_no_trade = []
+    codes_abolition = []
     for response, code in responses:
+        
+        print(code)
         
         # 30日のうち，1日でも取引高が0になっているものは除く
         no_trade = False
 
         soup = BeautifulSoup(response.text, "lxml")
+        
+        # 上場廃止を判定 (= 時価総額が"-"である)
+        info_table_zika = soup.select(
+            "#stockinfo_i3 > table > tbody > tr:nth-child(2) > td")[0]
+        zika = info_table_zika.string
+        
+        if zika in ["－", "-"]:
+            # codes_normalから該当銘柄は削除，以降の処理はスキップしてpricesには追加しない
+            codes_abolition.append(code)
+            del codes_normal[codes_normal.index(code)]
+            continue
 
         # 当日情報の表 本体
         today_table_body = soup.select(
@@ -94,16 +119,25 @@ if DO_SCRAPING:
         
         # 取引が一日でもなかったものは除く
         if no_trade:
-            codes_anomaly.append(code)
+            codes_no_trade.append(code)
 
-     
-# codes_anomaly内にある銘柄は削除
-if codes_anomaly:
+# codes_error内にある銘柄は削除してあるので，表示だけする
+if codes_error:
+        print("以下の銘柄は存在しないため，予測の対象外です．")
+        print(", ".join([str(code) for code in codes_error])) 
+   
+# codes_no_trade内にある銘柄は削除
+if codes_no_trade:
     print("以下の銘柄は取引高が0の日があるため，予測の対象外です．")
-    print(", ".join([str(code) for code in codes_anomaly]))
+    print(", ".join([str(code) for code in codes_no_trade]))
     
-    codes_normal = [x for x in codes_normal if x not in codes_anomaly]
-    prices_normal_not_indices_30 = [x for x in prices_normal_not_indices_30 if x[1] not in codes_anomaly]
+    codes_normal = [x for x in codes_normal if x not in codes_no_trade]
+    prices_normal_not_indices_30 = [x for x in prices_normal_not_indices_30 if x[1] not in codes_no_trade]
+
+# codes_abolistion内にある銘柄は削除してあるので，表示だけする
+if codes_abolition:
+    print("以下の銘柄は上場廃止しているため，予測の対象外です．")
+    print(", ".join([str(code) for code in codes_abolition]))
 
 # modelのデータ形式に合わせてデータを整形
 for i, code_prices in enumerate(prices_normal_not_indices_30):
@@ -189,24 +223,30 @@ X_real = pd.DataFrame(X_real_binned, index=X_real.index, columns=[f"{feat}_binne
 # モデルの読み込み
 print("loading models...", end="", flush=True)
 if MODEL == "ENSEMBLE_GBM":
-    models = [joblib.load(f"etc/models/model{i+1}.job") for i in range(ENSEMBLE_NUM)]
+    models1 = [joblib.load(f"etc/models/model_ret1_{i+1}.job") for i in range(ENSEMBLE_NUM)]
+    models2 = [joblib.load(f"etc/models/model_ret2_{i+1}.job") for i in range(ENSEMBLE_NUM)]
 elif MODEL == "ENSEMBLE_GBM_LR":
-    models = [joblib.load(f"etc/models/model1.job"), joblib.load(f"etc/models/model2.job")]
+    models1 = [joblib.load(f"etc/models/model1_ret1.job"), joblib.load(f"etc/models/model2_ret1.job")]
+    models2 = [joblib.load(f"etc/models/model1_ret2.job"), joblib.load(f"etc/models/model2_ret2.job")]
 else:
-    models = [joblib.load(f"etc/models/model.job")]
+    models1 = [joblib.load(f"etc/models/model_ret1.job")]
+    models2 = [joblib.load(f"etc/models/model_ret2.job")]
 print("finished!")
 
 # モデルを用いた予測
 if MODEL == "ENSEMBLE_GBM":
-    tmp_real_pred = pd.Series([0]*len(X_real))
+    tmp_real_pred1 = pd.Series([0]*len(X_real))
+    tmp_real_pred2 = pd.Series([0]*len(X_real))
     
     # 複数のGBMのアンサンブル
     for i in range(ENSEMBLE_NUM):
-        tmp_real_pred += models[i].predict(X_real)
+        tmp_real_pred1 += models1[i].predict(X_real)
+        tmp_real_pred2 += models2[i].predict(X_real)
         
-    df_real[f'ret{FORECAST}_forecast'] = tmp_real_pred/ENSEMBLE_NUM
+    df_real[f'ret1_forecast'] = tmp_real_pred1/ENSEMBLE_NUM
+    df_real[f'ret2_forecast'] = tmp_real_pred2/ENSEMBLE_NUM
     
 
 # 予測結果の出力
-df_real = df_real[["Date", "Code", f"ret{FORECAST}_forecast"]].sort_values(f"ret{FORECAST}_forecast", ascending=False)
-print(df_real)
+df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret{SORT_FORECAST}_forecast", ascending=False)
+df_real.to_csv(f"datas/output/{today.strftime('%Y-%m-%d')}.csv")
