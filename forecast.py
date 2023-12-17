@@ -17,9 +17,8 @@ ENSEMBLE_NUM = 3 # < 4
 DO_SCRAPING = True
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
-SORT_FORECAST = 2
 SEED = 1234
-today = datetime.datetime.now() + datetime.timedelta(hours=9)
+NOW = datetime.datetime.now() + datetime.timedelta(hours=9)
 
 
 def fetch(url):
@@ -248,5 +247,8 @@ if MODEL == "ENSEMBLE_GBM":
     
 
 # 予測結果の出力
-df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret{SORT_FORECAST}_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{today.strftime('%Y-%m-%d')}.csv")
+df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret1_forecast", ascending=False)
+df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret1sort.csv")
+
+df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret2_forecast", ascending=False)
+df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret2sort.csv")
