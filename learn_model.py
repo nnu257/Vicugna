@@ -34,6 +34,10 @@ print("now loading datas...", flush=True, end="")
 prices_normal = joblib.load('etc/prices_normal.job')
 print("finished!")
 
+# prices_normalの各銘柄の最新日はret1, ret2の値が不適切のため，データを削除
+for i in range(len(prices_normal)):
+    del prices_normal[i][-1]
+
 # データを分割して捨てる
 prices_normal, not_use = train_test_split(prices_normal, train_size=DATA_USE_RATE-1e-5, random_state=SEED)
 
