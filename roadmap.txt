@@ -1,7 +1,4 @@
 todo
 
-learn_model.py
-業種コード，曜日を特徴量に入れる
-
 forecast.py
 フォーワードテストの実装

@@ -24,7 +24,7 @@ ENSEMBLE_NUM = 3 # < 4
 DATA_USE_RATE = 1
 DO_SHAP = False
 SAVE_MODEL = True
-FORECAST = 1
+FORECAST = 2
 
 # 実行時間計測
 start = time.time()
@@ -49,7 +49,7 @@ flat_train = [x for row in train for x in row]
 flat_test = [x for row in test for x in row]
 
 # 各データセットをdf化
-columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1', 'ret2']
+columns=['Num', 'Date', 'Code', 'Open', 'High', 'Low', 'Close', 'UpperLimit', 'LowerLimit', 'Volume', 'TurnoverValue', 'AdjustmentFactor', 'AdjustmentOpen', 'AdjustmentHigh', 'AdjustmentLow', 'AdjustmentClose', 'AdjustmentVolume', 'movingvolume_10', 'movingline_5', 'movingline_25', 'macd', 'signal', 'rsi_9', 'rsi_14', 'rsi_22', 'psycological', 'movingline_deviation_5', 'movingline_deviation_25', 'bollinger25_p1', 'bollinger25_p2', 'bollinger25_p3', 'bollinger25_m1', 'bollinger25_m2', 'bollinger25_m3', 'FastK', 'FastD', 'SlowK', 'SlowD', 'momentum_rate_10', 'momentum_rate_20', 'close_diff_rate1', 'close_diff_rate5', 'close_diff_rate25', 'volatility5', 'volatility25', 'volatility60', 'ret1', 'ret2', 'days_of_weeks']
 df_train = pd.DataFrame(flat_train, columns=columns).fillna(0)
 df_test = pd.DataFrame(flat_test, columns=columns).fillna(0)
 
@@ -87,7 +87,8 @@ features = ['Code',
             'close_diff_rate5',
             'close_diff_rate25',
             'volatility5',
-            'volatility25']
+            'volatility25',
+            'days_of_weeks']
 
 target = [f'ret{FORECAST}']
 
