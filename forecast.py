@@ -17,8 +17,8 @@ ENSEMBLE_NUM = 3 # < 4
 DO_SCRAPING = True
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
-SEED = 1234
 NOW = datetime.datetime.now() + datetime.timedelta(hours=9)
+TODAY = NOW.strftime('%Y-%m-%d')
 
 
 def fetch(url):
@@ -30,7 +30,7 @@ def fetch(url):
 codes_normal = joblib.load('etc/codes_normal.job')
 
 # 現時点ではフォワードテストを少ししたいので，ランダムに抽出した銘柄について予測，記録
-random.seed(SEED)
+random.seed(TODAY)
 codes_normal = random.sample(codes_normal, 300)
 
 # 株価データのスクレイピング(最新30日分を用意)
