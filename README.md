@@ -11,8 +11,7 @@
 
 ## 出力例
 - 当プログラムの最終出力は，ユーザが指定した銘柄群の株価予測結果です．
-- datas/output/日付_時刻_ret1sort(ret2sort).txtです．
-   - ret1sort.txtはret1の降順，ret2sort.txtはret2の降順に並んでいます．
+- datas/result.txtです．  
 
 ## 特徴量
 - 用いた特徴量は，以下の通りです．
@@ -62,14 +61,13 @@ mkdir models
 *ダウンロードの方法については，私のリポジトリKagutuchiや，他の方のチュートリアルを参考に．  
 Kagutuchiのpyファイルを実行すれば，自動で生成されますが，フォルダの依存関係はパスを修正してください．  
 4. 株価予測
-   1. learn_model.pyを実行しモデルを学習(初回のみ)
-   2. forecast.pyを実行して予測
+   1. learn_model.pyを実行
+   2. forecast.pyを実行
 ```
 python3 learn_model.py
 python3 forecast.py
 ```
-5. 評価
-   1. forward.pyを実行して評価
+
 
 ## 株価データの形式
 - datas/price_expla.txtを参考に．
