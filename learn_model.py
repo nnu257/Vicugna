@@ -16,6 +16,8 @@ import shap
 import mylib_stock2
 
 
+# 株価予測のためのモデルを学習するプログラム
+
 # 各種設定
 # DATA_USE_RATEは最大1で181万データ
 SEED = 1234
