@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import KBinsDiscretizer
 import joblib
-import pandas as pd
 
 def score(df, target, pred):   
     # 学習・評価データそれぞれにおけるtargetとpredの相関係数を計測
@@ -39,12 +38,3 @@ def binning(X_train, X_test, n_bins=5, encode='ordinal', strategy='quantile'):
     X_test_binned = discretizer.transform(X_test)
     
     return X_train_binned, X_test_binned
-
-
-def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
-    # 予測結果のファイルにその後のデータを書き込む
-    return df_file
-    
-def validate(df_files:list) -> None:
-    # 予測結果のリストを受け取り，検証する
-    pass

@@ -11,8 +11,6 @@ import datetime
 import mylib_stock_copy
 
 
-# 株価を予測するプログラム
-
 # 各種設定
 MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
@@ -250,7 +248,7 @@ if MODEL == "ENSEMBLE_GBM":
 
 # 予測結果の出力
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret1_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret1sort.csv", index=False)
+df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret1sort.csv")
 
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret2_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret2sort.csv", index=False)
+df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret2sort.csv")
