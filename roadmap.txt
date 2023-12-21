@@ -4,8 +4,5 @@ forecast.py
 topix500に絞る
 使う株価を3日とかにする
 
-learn_model.py
-評価指標の再考
-
 forward.py
 営業時間外のみ実行
