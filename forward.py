@@ -19,7 +19,6 @@ TODAY_LAGGED = (NOW - datetime.timedelta(hours=16.5)).strftime('%Y-%m-%d')
 
 
 # 営業時間+-マージンの時間は実行できない
-# スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
 START = datetime.time(8,30,0)
 END = datetime.time(16,30,0)
 if (START < NOW_TIME) and (NOW_TIME < END):
