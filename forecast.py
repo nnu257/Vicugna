@@ -7,6 +7,7 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 import random
 import datetime
+import sys
 
 import mylib_stock_copy
 
@@ -16,116 +17,119 @@ import mylib_stock_copy
 # 各種設定
 MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
-DO_SCRAPING = True
+
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
-NOW = datetime.datetime.now() + datetime.timedelta(hours=9)
-TODAY = NOW.strftime('%Y-%m-%d')
+
+NOW = datetime.datetime.now()
+NOW_TIME = NOW.time()
+TODAY_LAGGED = (NOW - datetime.timedelta(hours=16.5)).strftime('%Y-%m-%d')
 
 
-def fetch(url):
-    # クロール関数
-    return requests.get(url)
-
-
+# 営業時間+-マージンの時間は実行できない
+# スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
+START = datetime.time(8,30,0)
+END = datetime.time(16,30,0)
+if (START < NOW_TIME) and (NOW_TIME < END):
+    print("8:30~16:30は実行できません．")
+    sys.exit()
+    
 # 銘柄リスト
 codes_normal = joblib.load('etc/codes_normal.job')
 
-# 現時点ではフォワードテストを少ししたいので，ランダムに抽出した銘柄について予測，記録
-random.seed(TODAY)
+# ランダムに抽出した銘柄について予測，記録
+random.seed(TODAY_LAGGED)
 codes_normal = random.sample(codes_normal, 300)
 
-# 株価データのスクレイピング(最新30日分を用意)
-if DO_SCRAPING:
-    
-    # コードを結合したURLのレスポンスを取得
-    responses = []
-    for code in tqdm(codes_normal, desc="Fetching responses..."):
-        responses.append([fetch(KABUTAN_URL + str(code)[:-1]), code])
-        time.sleep(DELAY)
-    
-    # 銘柄コードの誤りと，ページが存在しない，かなり前に上場廃止した企業を除く
-    codes_error = [response[1] for response in responses if "該当する銘柄は見つかりませんでした" in response[0].text]
-    
-    # codes_error内にある銘柄は削除, 出力は他のものとまとめて行う
-    if codes_error:
-        codes_normal = [x for x in codes_normal if x not in codes_error]
-        responses = [response for response in responses if response[1] not in codes_error]
-    
-    # 株価などを取り出す
-    prices_normal_not_indices_30 = []
-    # codes_no_tradeは取引がない銘柄，codes_abolitionは上場廃止銘柄
-    codes_no_trade = []
-    codes_abolition = []
-    for response, code in responses:
-        
-        print(code)
-        
-        # 30日のうち，1日でも取引高が0になっているものは除く
-        no_trade = False
+# 株価データのスクレイピング(最新30日分を用意)        
+# コードを結合したURLのレスポンスを取得
+responses = []
+for code in tqdm(codes_normal, desc="Fetching responses..."):
+    responses.append([requests.get(KABUTAN_URL + str(code)[:-1]), code])
+    time.sleep(DELAY)
 
-        soup = BeautifulSoup(response.text, "lxml")
-        
-        # 上場廃止を判定 (= 時価総額が"-"である)
-        info_table_zika = soup.select(
-            "#stockinfo_i3 > table > tbody > tr:nth-child(2) > td")[0]
-        zika = info_table_zika.string
-        
-        if zika in ["－", "-"]:
-            # codes_normalから該当銘柄は削除，以降の処理はスキップしてpricesには追加しない
-            codes_abolition.append(code)
-            del codes_normal[codes_normal.index(code)]
-            continue
+# 銘柄コードの誤りと，ページが存在しない，かなり前に上場廃止した企業を除く
+codes_error = [response[1] for response in responses if "該当する銘柄は見つかりませんでした" in response[0].text]
 
-        # 当日情報の表 本体
-        today_table_body = soup.select(
-            "#stock_kabuka_table > table.stock_kabuka0 > tbody")[0]
+# codes_error内にある銘柄は削除, 出力は他のものとまとめて行う
+if codes_error:
+    codes_normal = [x for x in codes_normal if x not in codes_error]
+    responses = [response for response in responses if response[1] not in codes_error]
 
-        # 当日情報を取り出す
-        date = ["20"+today_table_body.find("time").string.replace("/", "-")]
+# 株価などを取り出す
+prices_normal_not_indices_30 = []
+# codes_no_tradeは取引がない銘柄，codes_abolitionは上場廃止銘柄
+codes_no_trade = []
+codes_abolition = []
+for response, code in responses:
+    
+    print(code)
+    
+    # 30日のうち，1日でも取引高が0になっているものは除く
+    no_trade = False
+
+    soup = BeautifulSoup(response.text, "lxml")
+    
+    # 上場廃止を判定 (= 時価総額が"-"である)
+    info_table_zika = soup.select(
+        "#stockinfo_i3 > table > tbody > tr:nth-child(2) > td")[0]
+    zika = info_table_zika.string
+    
+    if zika in ["－", "-"]:
+        # codes_normalから該当銘柄は削除，以降の処理はスキップしてpricesには追加しない
+        codes_abolition.append(code)
+        del codes_normal[codes_normal.index(code)]
+        continue
+
+    # 当日情報の表 本体
+    today_table_body = soup.select(
+        "#stock_kabuka_table > table.stock_kabuka0 > tbody")[0]
+
+    # 当日情報を取り出す
+    date = ["20"+today_table_body.find("time").string.replace("/", "-")]
+    values = [value.string.replace(",", "")
+                for value in today_table_body.find_all("td")[0:4]]
+    volume = [today_table_body.find_all("td")[6].string.replace(",", "")]
+    today_record = date + values + volume
+    
+    if volume[0] == "0":
+        no_trade = True
+
+    # メイン表
+    main_table_body = soup.select(
+        "#stock_kabuka_table > table.stock_kabuka_dwm > tbody")[0]
+    main_table_records = main_table_body.find_all("tr")
+
+    # メイン表の各行から、要素を取り出す
+    main_table_recors_value = []
+    for record in main_table_records:
+
+        date = ["20"+record.select("th > time")[0].string.replace(",", "").replace("/", "-")]
         values = [value.string.replace(",", "")
-                    for value in today_table_body.find_all("td")[0:4]]
-        volume = [today_table_body.find_all("td")[6].string.replace(",", "")]
-        today_record = date + values + volume
+                    for value in record.find_all("td")[0:4]]
+        volume = [record.find_all("td")[6].string.replace(",", "")]
         
         if volume[0] == "0":
             no_trade = True
 
-        # メイン表
-        main_table_body = soup.select(
-            "#stock_kabuka_table > table.stock_kabuka_dwm > tbody")[0]
-        main_table_records = main_table_body.find_all("tr")
+        value_record = date + values + volume
+        main_table_recors_value.append(value_record)
 
-        # メイン表の各行から、要素を取り出す
-        main_table_recors_value = []
-        for record in main_table_records:
-
-            date = ["20"+record.select("th > time")[0].string.replace(",", "").replace("/", "-")]
-            values = [value.string.replace(",", "")
-                        for value in record.find_all("td")[0:4]]
-            volume = [record.find_all("td")[6].string.replace(",", "")]
-            
-            if volume[0] == "0":
-                no_trade = True
-
-            value_record = date + values + volume
-            main_table_recors_value.append(value_record)
-
-        # メイン表すべて
-        table = [today_record] + main_table_recors_value
-        
-        # 全体表に追加
-        prices_normal_not_indices_30.append([table, code])
-        
-        # 取引が一日でもなかったものは除く
-        if no_trade:
-            codes_no_trade.append(code)
+    # メイン表すべて
+    table = [today_record] + main_table_recors_value
+    
+    # 全体表に追加
+    prices_normal_not_indices_30.append([table, code])
+    
+    # 取引が一日でもなかったものは除く
+    if no_trade:
+        codes_no_trade.append(code)
 
 # codes_error内にある銘柄は削除してあるので，表示だけする
 if codes_error:
         print("以下の銘柄は存在しないため，予測の対象外です．")
         print(", ".join([str(code) for code in codes_error])) 
-   
+
 # codes_no_trade内にある銘柄は削除
 if codes_no_trade:
     print("以下の銘柄は取引高が0の日があるため，予測の対象外です．")
@@ -250,7 +254,7 @@ if MODEL == "ENSEMBLE_GBM":
 
 # 予測結果の出力
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret1_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret1sort.csv", index=False)
+df_real.to_csv(f"datas/output/{TODAY_LAGGED.strftime('%Y-%m-%d')}_ret1sort.csv", index=False)
 
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret2_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{NOW.strftime('%Y-%m-%d_%H-%M-%S')}_ret2sort.csv", index=False)
+df_real.to_csv(f"datas/output/{TODAY_LAGGED.strftime('%Y-%m-%d')}_ret2sort.csv", index=False)
