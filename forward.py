@@ -32,11 +32,15 @@ for filename in filenames:
     df_file = mylib_stock2.add_price(df_file)
 
     # 検証用リストへの追加とcsvでの上書き保存
-    df_files.append(df_file)
-    df_file.to_csv(file_path, index=False)
+    if df_file:
+        df_files.append(df_file)
+        df_file.to_csv(file_path, index=False)
     
 # 検証
-mylib_stock2.validate(df_files)
+if df_files:
+    mylib_stock2.validate(df_files)
+else:
+    print("検証できるデータがありません．")
     
     
     

@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.preprocessing import KBinsDiscretizer
 import joblib
 import pandas as pd
+import datetime
+
 
 def score(df, target, pred):   
     # 学習・評価データそれぞれにおけるtargetとpredの相関係数を計測
@@ -13,8 +15,8 @@ def run_analytics(scores, figname):
     # 各統計値を計算
     print(f"Mean Correlation: {scores.mean():.4f}")
     print(f"Median Correlation: {scores.median():.4f}")
-    '''
     print(f"Standard Deviation: {scores.std():.4f}")
+    '''
     print(f"Mean Pseudo-Sharpe: {scores.mean()/scores.std():.4f}")
     print(f"Median Pseudo-Sharpe: {scores.median()/scores.std():.4f}")
     '''
@@ -43,8 +45,23 @@ def binning(X_train, X_test, n_bins=5, encode='ordinal', strategy='quantile'):
 
 def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
     # 予測結果のファイルにその後のデータを書き込む
+    
+    # もう追加してあるファイルには書き込まない
+    if df_file.shape(1) >= 6:
+        return None
+    
+    # Dateの日から1営業日経っているかチェック
+    
+    # クローリング
+    
+    # スクレイピング
+    
+    # df_fileに追記
+    
     return df_file
     
 def validate(df_files:list) -> None:
     # 予測結果のリストを受け取り，検証する
-    pass
+    
+    for df in df_files:
+        pass
