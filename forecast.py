@@ -10,6 +10,7 @@ import datetime
 import sys
 
 import mylib_stock_copy
+from mylib_stock2 import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
 
 
 # 株価を予測するプログラム
@@ -18,18 +19,9 @@ import mylib_stock_copy
 MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
 
-DELAY = 2
-KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
-
-NOW = datetime.datetime.now()
-NOW_TIME = NOW.time()
-TODAY_LAGGED = (NOW - datetime.timedelta(hours=16.5)).strftime('%Y-%m-%d')
-
 
 # 営業時間+-マージンの時間は実行できない
 # スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
-START = datetime.time(8,30,0)
-END = datetime.time(16,30,0)
 if (START < NOW_TIME) and (NOW_TIME < END):
     print("8:30~16:30は実行できません．")
     sys.exit()
