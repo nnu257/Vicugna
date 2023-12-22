@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import time
 from tqdm import tqdm
 
-from biz_module_ex import day_n_far_biz, afterNbizday_date
+from mylib_biz import day_n_far_biz, afterNbizday_date
 
 
 NOW = datetime.datetime.now()
