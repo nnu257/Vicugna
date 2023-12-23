@@ -246,7 +246,7 @@ if MODEL == "ENSEMBLE_GBM":
 
 # 予測結果の出力
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret1_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{TODAY_LAGGED.strftime('%Y-%m-%d')}_ret1sort.csv", index=False)
+df_real.to_csv(f"datas/output/{TODAY_LAGGED}_ret1sort.csv", index=False)
 
 df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret2_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{TODAY_LAGGED.strftime('%Y-%m-%d')}_ret2sort.csv", index=False)
+df_real.to_csv(f"datas/output/{TODAY_LAGGED}_ret2sort.csv", index=False)

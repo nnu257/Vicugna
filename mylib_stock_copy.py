@@ -288,6 +288,7 @@ def calculate_return1(closes:list, opens=list) -> list:
 # 与えられたリストから終値前日比率の-1.0のshift(-1)を計算
 def calculate_return2(closes:list) -> list:
     
+    # pd_close_shiftは一日後のclose
     pd_close = pd.Series(closes)
     pd_close_shift = pd.Series(closes).shift(-1).fillna(0.1)
     

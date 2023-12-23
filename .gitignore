@@ -1,6 +1,7 @@
 etc/
 output/
 output_dummy/
+results/
 .DS_Store
 ~$東証営業時間と実行時間.pptx
 東証営業時間と実行時間.pptx

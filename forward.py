@@ -13,7 +13,6 @@ from mylib_stock2 import NOW, NOW_TIME, TODAY_LAGGED, START, END
 
 # 各種設定
 OUTPUT_PATH = "datas/output"
-OUTPUT_PATH = "datas/output_dummy"
 
 
 # 営業時間+-マージンの時間は実行できない
