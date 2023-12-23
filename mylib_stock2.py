@@ -155,28 +155,24 @@ def validate(df:pd.DataFrame) -> list:
         return [df['Date'][0], "Error"]
     
     # 評価するのはNo_tradeじゃなかった銘柄のみ，評価する銘柄の割合
-    sum_verify = len(df[df['after1bizday_Open'] != "No_trade"])
+    sum_verify = len(df.query('after1bizday_Open != "No_trade"'))
     trade_rate = sum_verify/df.shape[0]
     
     # 取引がなかった銘柄は除く
     df = df[df['after1bizday_Open'] != "No_trade"]
     
     # ret1とret2の実際の値を計算
-    df['ret1real'] = (df['after1bizday_Close']/df['after1bizday_Open']) - 1.0
-    df['ret2real'] = (df['after1bizday_Close']/df['Close']) - 1.0
+    df['ret1_real'] = (df['after1bizday_Close']/df['after1bizday_Open']) - 1.0
+    df['ret2_real'] = (df['after1bizday_Close']/df['Close']) - 1.0
     
     # 予想の方向のみ
-    hit1_rate = len(df.query('ret1forecast * ret1real > 0'))/sum_verify
-    hit2_rate = len(df.query('ret2forecast * ret2real > 0'))/sum_verify
+    hit1_rate = len(df.query('ret1_forecast * ret1_real > 0'))/sum_verify
+    hit2_rate = len(df.query('ret2_forecast * ret2_real > 0'))/sum_verify
     
     # 上がると予想していた割合とそのうち当たった割合
-    up1_rate = len(df[df['ret1forecast']>0])/sum_verify
-    up2_rate = len(df[df['ret2forecast']>0])/sum_verify
+    up1_rate = len(df.query('ret1_forecast>0'))/sum_verify
+    up2_rate = len(df.query('ret2_forecast>0'))/sum_verify
+    uphit1_rate =  len(df.query('ret1_forecast>0 and ret1_forecast*ret1_real>0'))/(up1_rate*sum_verify)
+    uphit2_rate =  len(df.query('ret2_forecast>0 and ret2_forecast*ret2_real>0'))/(up2_rate*sum_verify)
     
-    
-    
-    return [date, trade_rate, hit1_rate, hit2_rate]
-    
-    
-    
-    
+    return [date, trade_rate, hit1_rate, hit2_rate, up1_rate, uphit1_rate, up2_rate, uphit2_rate]
