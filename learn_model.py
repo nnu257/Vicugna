@@ -26,7 +26,8 @@ ENSEMBLE_NUM = 3 # < 4
 DATA_USE_RATE = 1
 DO_SHAP = False
 SAVE_MODEL = True
-FORECAST = 2
+FORECAST = 1
+TRAIN_SIZE = 0.8
 
 # 実行時間計測
 start = time.time()
@@ -43,8 +44,12 @@ for i in range(len(prices_normal)):
 # データを分割して捨てる
 prices_normal, not_use = train_test_split(prices_normal, train_size=DATA_USE_RATE-1e-5, random_state=SEED)
 
-# 学習・評価データの分割(ランダムに銘柄で分割)
-train, test = train_test_split(prices_normal, test_size=0.2, random_state=SEED)
+# 学習・評価データの分割
+# ランダムに銘柄で分割
+#train, test = train_test_split(prices_normal, train_size=TRAIN_SIZE, random_state=SEED)
+# 期間で分割
+train = [code_price[:int(len(code_price) * TRAIN_SIZE)] for code_price in prices_normal]
+test = [code_price[int(len(code_price) * TRAIN_SIZE):] for code_price in prices_normal]
 
 # 銘柄でまとめてある配列を一次元化リスト化
 flat_train = [x for row in train for x in row]
@@ -174,8 +179,8 @@ elif MODEL == "ENSEMBLE_GBM_LR":
 '''    
 elif MODEL == "NEURAL":
     # パラメータ
-    LAYERS = 1
-    NODES = len(features)
+    LAYERS = 15
+    NODES = len(features)+1
     BATCH_SIZE = 64
     EPOCHS = 100
     
