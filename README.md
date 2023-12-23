@@ -53,6 +53,7 @@
 cd Vicugna
 cd datas
 mkdir output
+mkdir results
 cd ..
 mkdir etc
 cd etc
@@ -69,7 +70,12 @@ python3 learn_model.py
 python3 forecast.py
 ```
 5. 評価
-   1. forward.pyを実行して評価
+   1. forward.pyを実行して1日後の株価を取得
+   2. verify.pyを実行して実際の成績を評価
+```
+python3 forward.py
+python3 verify.py
+```
 
 ## 株価データの形式
 - datas/price_expla.txtを参考に．

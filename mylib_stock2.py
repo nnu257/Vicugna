@@ -14,6 +14,7 @@ from mylib_biz import day_n_far_biz, afterNbizday_date
 
 NOW = datetime.datetime.now()
 NOW_TIME = NOW.time()
+NOW_WEEK = NOW.weekday()
 TODAY_LAGGED = (NOW - datetime.timedelta(hours=16.5)).strftime('%Y-%m-%d')
 TODAY_LAGGED_DT = datetime.datetime.strptime(TODAY_LAGGED, "%Y-%m-%d")
 START = datetime.time(8,30,0)
@@ -61,15 +62,15 @@ def binning(X_train, X_test, n_bins=5, encode='ordinal', strategy='quantile'):
     return X_train_binned, X_test_binned
 
 
-def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
+def add_price(df:pd.DataFrame) -> pd.DataFrame:
     # 予測結果のファイルにその後のデータを書き込む
     
     # もう追加してあるファイルには書き込まない
-    if df_file.shape[1] >= 6:
+    if df.shape[1] >= 6:
         return None
     
     # Dateの日から1営業日経っていないファイルには書き込まない
-    recorded_day = datetime.datetime.strptime(df_file['Date'][0], "%Y-%m-%d")
+    recorded_day = datetime.datetime.strptime(df['Date'][0], "%Y-%m-%d")
     if not day_n_far_biz(recorded_day, TODAY_LAGGED_DT, 1):
         return None
     
@@ -77,16 +78,16 @@ def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
     after1bizday_Date = afterNbizday_date(recorded_day, 1)
     
     # 念の為に分析日の日付を追記
-    df_file['after1bizday_Date'] = after1bizday_Date
+    df['after1bizday_Date'] = after1bizday_Date
     
     # Dateの日から25営業日以上経ったものはErrorを記録
     if day_n_far_biz(recorded_day, TODAY_LAGGED_DT, 25):
-        df_file['after1bizday_Open'] = "Error"
-        df_file['after1bizday_Close'] = "Error"
-        return df_file
+        df['after1bizday_Open'] = "Error"
+        df['after1bizday_Close'] = "Error"
+        return df
     
     # クローリング
-    codes = [str(code)[:-1] for code in df_file['Code']]
+    codes = [str(code)[:-1] for code in df['Code']]
     responses = []
     for code in tqdm(codes, desc="Fetching responses..."):
         responses.append(requests.get(KABUTAN_URL + code))
@@ -128,7 +129,7 @@ def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
         
         # 対象の日のVolumeが0ならエラー
         if after1bizday_record[5] == "0":
-            open, close = "Error", "Error"   
+            open, close = "No_trade", "No_trade"
         # 取引があれば読み込む
         else:
             open, close = after1bizday_record[1], after1bizday_record[4]
@@ -136,18 +137,46 @@ def add_price(df_file:pd.DataFrame) -> pd.DataFrame:
         opens.append(open)
         closes.append(close)
     
-    # df_fileにOpenとCloseを追記
-    df_file['after1bizday_Open'] = opens
-    df_file['after1bizday_Close'] = closes
+    # dfにOpenとCloseを追記
+    df['after1bizday_Open'] = opens
+    df['after1bizday_Close'] = closes
     
-    return df_file
+    return df
     
     
-def validate(df_files:list) -> None:
-    # 予測結果のリストを受け取り，検証する
-    # 記録(予測)から分析まで30日以上経ったデータは最後の列にErrorが入っている．
-    # 取引なしの時もErrorとする．
-    # 前者はエラー出力，後者はハンドリングできるよう実装すること．
+def validate(df:pd.DataFrame) -> list:
+    # 予測結果を受け取り，評価する
     
-    for df in df_files:
-        pass
+    # 日付
+    date = df['Date'][0]
+    
+    # 記録(予測)から分析まで30日以上経ったデータはエラー
+    if df['after1bizday_Open'][0] == "Error":
+        return [df['Date'][0], "Error"]
+    
+    # 評価するのはNo_tradeじゃなかった銘柄のみ，評価する銘柄の割合
+    sum_verify = len(df[df['after1bizday_Open'] != "No_trade"])
+    trade_rate = sum_verify/df.shape[0]
+    
+    # 取引がなかった銘柄は除く
+    df = df[df['after1bizday_Open'] != "No_trade"]
+    
+    # ret1とret2の実際の値を計算
+    df['ret1real'] = (df['after1bizday_Close']/df['after1bizday_Open']) - 1.0
+    df['ret2real'] = (df['after1bizday_Close']/df['Close']) - 1.0
+    
+    # 予想の方向のみ
+    hit1_rate = len(df.query('ret1forecast * ret1real > 0'))/sum_verify
+    hit2_rate = len(df.query('ret2forecast * ret2real > 0'))/sum_verify
+    
+    # 上がると予想していた割合とそのうち当たった割合
+    up1_rate = len(df[df['ret1forecast']>0])/sum_verify
+    up2_rate = len(df[df['ret2forecast']>0])/sum_verify
+    
+    
+    
+    return [date, trade_rate, hit1_rate, hit2_rate]
+    
+    
+    
+    
