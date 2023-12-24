@@ -1,6 +1,5 @@
 learn_model.py
-topix500に絞る
-業種を入れる
+topix500に絞る(学習・評価)
 使う株価を3日とかにする
 
 forward.py
