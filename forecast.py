@@ -6,7 +6,6 @@ import time
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 import random
-import datetime
 import sys
 
 import mylib_stock_copy
@@ -54,8 +53,7 @@ prices_normal_not_indices_30 = []
 codes_no_trade = []
 codes_abolition = []
 for response, code in responses:
-    
-    print(code)
+    print(code, end=", ")
     
     # 30日のうち，1日でも取引高が0になっているものは除く
     no_trade = False
@@ -116,6 +114,8 @@ for response, code in responses:
     # 取引が一日でもなかったものは除く
     if no_trade:
         codes_no_trade.append(code)
+
+print("") 
 
 # codes_error内にある銘柄は削除してあるので，表示だけする
 if codes_error:

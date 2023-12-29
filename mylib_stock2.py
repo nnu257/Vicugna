@@ -15,10 +15,10 @@ from mylib_biz import day_n_far_biz, afterNbizday_date
 NOW = datetime.datetime.now()
 NOW_TIME = NOW.time()
 NOW_WEEK = NOW.weekday()
-TODAY_LAGGED = (NOW - datetime.timedelta(hours=16.5)).strftime('%Y-%m-%d')
+TODAY_LAGGED = (NOW - datetime.timedelta(hours=16)).strftime('%Y-%m-%d')
 TODAY_LAGGED_DT = datetime.datetime.strptime(TODAY_LAGGED, "%Y-%m-%d")
 START = datetime.time(8,30,0)
-END = datetime.time(16,30,0)
+END = datetime.time(16,00,0)
 
 DELAY = 2
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
