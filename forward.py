@@ -35,6 +35,8 @@ for filename in filenames:
 
     # 上書き保存
     if not df_file is None:
+        print("書き込み中です．終了しないでください...", flush=True, end="")
         df_file.to_csv(file_path, index=False)
+        print("終了しました．", flush=True)
 
 print("終了しました．")
