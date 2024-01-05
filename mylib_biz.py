@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 import jpholiday
 
 
-def isBizDay(day:datetime) -> bool:
+def isBizDay(inp:datetime) -> bool:
     # 営業日かを判定する関数
-    if day.weekday() >= 5 or jpholiday.is_holiday(day):
+    if inp.weekday() >= 5 or jpholiday.is_holiday(inp) or (inp.month==1 and (inp.day==2 or inp.day==3)):
         return False
     else:
         return True

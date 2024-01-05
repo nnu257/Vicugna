@@ -29,5 +29,8 @@ for filename in filenames:
 results = [mylib_stock2.validate(df_file) for df_file in df_files]
 print(results)
 
+# 土日祝に実行すると，金曜日や前日のデータ保存される．
+# よって，同じ日付で内容も同じデータが複数見られる場合があるので注意．
+
 # 記録
 #open(OUTPUT_PATH, "w").write("test")

@@ -20,7 +20,7 @@ TODAY_LAGGED_DT = datetime.datetime.strptime(TODAY_LAGGED, "%Y-%m-%d")
 START = datetime.time(8,30,0)
 END = datetime.time(16,00,0)
 
-DELAY = 2
+DELAY = 1.7
 KABUTAN_URL = "https://kabutan.jp/stock/kabuka?code="
 
 
