@@ -5,8 +5,6 @@ import math
 from tqdm import tqdm
 import datetime
 
-import sys
-
 
 # code, 17業種コード, 33業種コード, categoryを組としたリストを作成
 codes_info = open("datas/code/20231008205049.tsv").read().splitlines()[1:]

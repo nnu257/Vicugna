@@ -162,8 +162,8 @@ def validate(df:pd.DataFrame) -> list:
     df = df[df['after1bizday_Open'] != "No_trade"]
     
     # ret1とret2の実際の値を計算
-    df['ret1_real'] = (df['after1bizday_Close'].astype('float')/df['after1bizday_Open'].astype('float')) - 1.0
-    df['ret2_real'] = (df['after1bizday_Close'].astype('float')/df['Close'].astype('float')) - 1.0
+    df = df.assign(ret1_real = (df['after1bizday_Close'].astype('float')/df['after1bizday_Open'].astype('float')) - 1.0)
+    df = df.assign(ret2_real = (df['after1bizday_Close'].astype('float')/df['Close'].astype('float')) - 1.0)
     
     # 予想の方向のみ
     hit1_rate = len(df.query('ret1_forecast * ret1_real > 0'))/sum_verify
