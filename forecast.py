@@ -7,6 +7,7 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 import random
 import sys
+import os
 
 import mylib_stock_copy
 from mylib_stock2 import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
@@ -18,6 +19,7 @@ from mylib_stock2 import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
 MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
 SEED_RANDOMED = True
+OUTPUT_PATH = "datas/output"
 
 # 営業時間+-マージンの時間は実行できない
 # スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
@@ -250,10 +252,20 @@ if MODEL == "ENSEMBLE_GBM":
     df_real[f'ret1_forecast'] = tmp_real_pred1/ENSEMBLE_NUM
     df_real[f'ret2_forecast'] = tmp_real_pred2/ENSEMBLE_NUM
     
+# ファイル名の作成
+filenames = [filename for filename in os.listdir(OUTPUT_PATH)]
+
+for i in range(1,10000):
+    filename1 = f"datas/output/{TODAY_LAGGED}_ret1sort{i}.csv"
+    if filename1.split("/")[2] not in filenames:
+        break
+
+filename2 = filename1.replace("ret1", "ret2")
+index = ["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]
 
 # 予測結果の出力
-df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret1_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{TODAY_LAGGED}_ret1sort.csv", index=False)
+df_real = df_real[index].sort_values(f"ret1_forecast", ascending=False)
+df_real.to_csv(filename1, index=False)
 
-df_real = df_real[["Date", "Code", "Close", "ret1_forecast", "ret2_forecast"]].sort_values(f"ret2_forecast", ascending=False)
-df_real.to_csv(f"datas/output/{TODAY_LAGGED}_ret2sort.csv", index=False)
+df_real = df_real[index].sort_values(f"ret2_forecast", ascending=False)
+df_real.to_csv(filename2, index=False)
