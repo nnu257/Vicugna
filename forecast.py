@@ -25,16 +25,17 @@ if (START < NOW_TIME) and (NOW_TIME < END):
     print("8:30~16:30は実行できません．")
     sys.exit()
     
-# 銘柄リスト
-codes_normal = joblib.load('etc/codes_normal.job')
-
 # ランダムに抽出した銘柄について予測，記録
 if SEED_RANDOMED:
     random.seed(NOW_TIME)
 else:
     random.seed(TODAY_LAGGED)
     
+# 銘柄リスト
+print("loading codes...", end="", flush=True)
+codes_normal = joblib.load('etc/codes_normal.job')
 codes_normal = random.sample(codes_normal, 300)
+print("finished!", flush=True)
 
 # 株価データのスクレイピング(最新30日分を用意)        
 # コードを結合したURLのレスポンスを取得
