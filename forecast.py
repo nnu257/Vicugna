@@ -20,6 +20,7 @@ MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
 SEED_RANDOMED = True
 OUTPUT_PATH = "datas/output"
+manual_codes = [30730,]
 
 # 営業時間+-マージンの時間は実行できない
 # スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
@@ -36,7 +37,7 @@ else:
 # 銘柄リスト
 print("loading codes...", end="", flush=True)
 codes_normal = joblib.load('etc/codes_normal.job')
-codes_normal = random.sample(codes_normal, 300)
+codes_normal = random.sample(codes_normal, 300) + manual_codes
 print("finished!", flush=True)
 
 # 株価データのスクレイピング(最新30日分を用意)        
