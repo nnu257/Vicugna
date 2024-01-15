@@ -23,7 +23,7 @@ filenames = [filename for filename in os.listdir(OUTPUT_PATH) if "DS_store" not 
 for i, filename in enumerate(filenames):
     
     # 読み込み
-    print(f"{filename}を分析中 {i+1}/{len(filenames)}...")
+    print(f"{i+1}/{len(filenames)}　{filename}を分析中...")
     file_path = f"{OUTPUT_PATH}/{filename}"
     df_file = pd.read_csv(file_path)
     
