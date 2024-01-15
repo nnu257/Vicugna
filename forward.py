@@ -20,10 +20,10 @@ if (START <= NOW_TIME <= END) and (0 <= NOW_WEEK <= 4):
 filenames = [filename for filename in os.listdir(OUTPUT_PATH) if "DS_store" not in filename]
 
 # 結果を読み込み，その後の株価記録(1日分)を追記，検証
-for filename in filenames:
+for i, filename in enumerate(filenames):
     
     # 読み込み
-    print(f"{filename}を分析中...")
+    print(f"{filename}を分析中 {i+1}/{len(filenames)}...")
     file_path = f"{OUTPUT_PATH}/{filename}"
     df_file = pd.read_csv(file_path)
     
