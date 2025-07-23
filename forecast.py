@@ -34,22 +34,20 @@ if SEED_RANDOMED:
 else:
     random.seed(TODAY_LAGGED)
     
-# 銘柄リスト
+# 準備してあるファイルから銘柄リストを読み込み
 print("loading codes...", end="", flush=True)
 codes_normal = joblib.load('etc/codes_normal.job')
 codes_normal = random.sample(codes_normal, 300) + manual_codes
 print("finished!", flush=True)
 
 # 株価データのスクレイピング(最新30日分を用意)        
-# コードを結合したURLのレスポンスを取得
+# 株探URL+銘柄コードでgetして，レスポンスをリストに格納
 responses = []
-i = 1
 for code in tqdm(codes_normal, desc="Fetching responses..."):
     responses.append([requests.get(KABUTAN_URL + str(code)[:-1]), code])
     time.sleep(DELAY)
-    i += 1
 
-# 銘柄コードの誤りと，ページが存在しない，かなり前に上場廃止した企業を除く
+# 銘柄コードの誤りと，ページが存在しない(=かなり前に上場廃止した)企業を除く
 codes_error = [response[1] for response in responses if "該当する銘柄は見つかりませんでした" in response[0].text]
 
 # codes_error内にある銘柄は削除, 出力は他のものとまとめて行う
@@ -125,7 +123,7 @@ for response, code in responses:
     if no_trade:
         codes_no_trade.append(code)
 
-print("") 
+print("")
 
 # codes_error内にある銘柄は削除してあるので，表示だけする
 if codes_error:
