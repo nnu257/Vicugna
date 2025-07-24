@@ -10,7 +10,7 @@ import sys
 import os
 
 import mylib_stock_copy
-from mylib_stock2 import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
+from mylib_stock2_copy import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
 
 
 # 株価を予測するプログラム
@@ -18,9 +18,11 @@ from mylib_stock2 import NOW_TIME, TODAY_LAGGED, START, END, DELAY, KABUTAN_URL
 # 各種設定
 MODEL = "ENSEMBLE_GBM"
 ENSEMBLE_NUM = 3 # < 4
-SEED_RANDOMED = True
+SEED_IS_NOW = True
 OUTPUT_PATH = "datas/output"
 manual_codes = [30730,]
+# 20250724実行文からTrue
+CODES_ARE_PRIME = True
 
 # 営業時間+-マージンの時間は実行できない
 # スクレイピングせずに予測だけ可能とする方法もあるが，スクレイピングできたかわかるようにするため不可能とする
@@ -29,14 +31,18 @@ if (START < NOW_TIME) and (NOW_TIME < END):
     sys.exit()
     
 # ランダムに抽出した銘柄について予測，記録
-if SEED_RANDOMED:
+if SEED_IS_NOW:
     random.seed(NOW_TIME)
 else:
     random.seed(TODAY_LAGGED)
     
 # 準備してあるファイルから銘柄リストを読み込み
 print("loading codes...", end="", flush=True)
-codes_normal = joblib.load('etc/codes_normal.job')
+# CODES_ARE_PRIMEをTrueにすれば，codes_normalの変数名のまま，プライム上場企業のみが入る．
+if CODES_ARE_PRIME:
+    codes_normal = joblib.load('etc/codes_normal_prime.job')
+else:
+    codes_normal = joblib.load('etc/codes_normal.job')
 codes_normal = random.sample(codes_normal, 300) + manual_codes
 print("finished!", flush=True)
 

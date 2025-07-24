@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import sys
 
-import mylib_stock2
-from mylib_stock2 import NOW_WEEK, NOW_TIME, START, END
+import mylib_stock2_copy
+from mylib_stock2_copy import NOW_WEEK, NOW_TIME, START, END
 
 
 # 株価を予測した銘柄の1営業日後の株価をcsvに追記するプログラム
@@ -28,7 +28,7 @@ for i, filename in enumerate(filenames):
     df_file = pd.read_csv(file_path)
     
     # データの追加
-    df_file = mylib_stock2.add_price(df_file)
+    df_file = mylib_stock2_copy.add_price(df_file)
 
     # 上書き保存
     if not df_file is None:
