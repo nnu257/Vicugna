@@ -170,9 +170,7 @@ def validate(df:pd.DataFrame) -> list:
     hit2_rate = len(df.query('ret2_forecast * ret2_real > 0'))/sum_verify
     
     # ret2_forecastでup/downそれぞれ，閾値を超える予測をしていない場合がある．
-    # その場合はグラフにアラートを出したいので，フラグを作る．
-    # 今回はret2のforecastに閾値をつけている．よってret1ではフラグは変化させない．
-    flag = 0
+    # その場合はグラフに表示したくないので，np.nanとする．
     
     # 上がると予想していた割合とそのうち当たった割合
     up1_rate = len(df.query('ret1_forecast>0'))/sum_verify
@@ -180,12 +178,11 @@ def validate(df:pd.DataFrame) -> list:
     if up1_rate != 0.0:
         uphit1_rate = len(df.query('ret1_forecast>0 and ret1_real>0'))/(up1_rate*sum_verify)
     else:
-        uphit1_rate = 0
+        uphit1_rate = np.nan
     if up2_rate != 0.0:
         uphit2_rate = len(df.query('ret2_forecast>0 and ret2_real>0'))/(up2_rate*sum_verify)
     else:
-        uphit2_rate = 0
-        flag = 1
+        uphit2_rate = np.nan
     
     # 下がると予想していた割合とそのうち当たった割合
     down1_rate = 1-up1_rate
@@ -193,14 +190,10 @@ def validate(df:pd.DataFrame) -> list:
     if down1_rate != 0.0:
         downhit1_rate = len(df.query('ret1_forecast<0 and ret1_real<0'))/(down1_rate*sum_verify)
     else:
-        downhit1_rate = 0
+        downhit1_rate = np.nan
     if down2_rate != 0.0:
         downhit2_rate = len(df.query('ret2_forecast<0 and ret2_real<0'))/(down2_rate*sum_verify)
     else:
-        downhit2_rate == 0
-        if flag == 1:
-            flag = 3
-        else:
-            flag = 2
+        downhit2_rate = np.nan
     
-    return [date, hit1_rate, hit2_rate, up1_rate, uphit1_rate, up2_rate, uphit2_rate, down1_rate, downhit1_rate, down2_rate, downhit2_rate, trade_rate, flag]
+    return [date, hit1_rate, hit2_rate, up1_rate, uphit1_rate, up2_rate, uphit2_rate, down1_rate, downhit1_rate, down2_rate, downhit2_rate, trade_rate]

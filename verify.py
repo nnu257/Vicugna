@@ -14,7 +14,7 @@ NOW = NOW.strftime("%Y-%m-%d_%h-%m-%s")
 INPUT_PATH = "datas/output"
 OUTPUT_PATH = f"datas/results/result.csv"
 GRAPH_PATH = f"datas/results/graph.png"
-RET_THERES_INCLUDE_MIN = 0.007
+RET_THERES_INCLUDE_MIN = 0.005
 
 
 # 予測結果のファイル一覧を取得
@@ -52,29 +52,20 @@ open(OUTPUT_PATH, "w").writelines(table)
 df = pd.read_csv(OUTPUT_PATH)
 
 # 実行ごとのhit率
-# RET_THERESが設定されていれば，ret2の絶対値がTHERES以上のレコードのみ評価．その場合はhit1は参考程度に．
+# RET_THERESが設定されていれば，ret2の絶対値がTHERES以上のレコードのみ抽出されている．その場合はhit1は参考程度に．
 # 横軸がdate, 縦軸は各種予想のhit率
-# 横軸には，dfのflagを元に☓をつける
-labels = df["date"].copy()
-x = list(range(len(labels)))
-for i, flag in enumerate(df["flag"]):
-    if flag == 1:
-        labels[i] += "upx"
-    elif flag == 2:
-        labels[i] += "dox"
-    elif flag == 3:
-        labels[i] += "updox"
 plt.figure(figsize=(13, 9))
-plt.plot(x,df["uphit2"],label="uphit2")
-#plt.plot(x,df["downhit2"],label="downhit2")
-#plt.plot(x,df["hit2"],label="hit2")
-#plt.plot(x,df_mean["uphit1"],label="uphit1")
-#plt.plot(x,df_mean["downhit1"],label="downhit1")
-#plt.plot(x,df_mean["hit1"],label="hit1")
+x = list(range(len(df["date"].copy())))
+plt.scatter(x,df["uphit2"],label="uphit2", s=500)
+plt.scatter(x,df["hit2"],label="hit2", s=50)
+plt.scatter(x,df["downhit2"],label="downhit2", s=50)
+plt.ylim(-0.05, 1.05)
 plt.hlines([0.5], x[0], x[-1], linestyles='dashed')
 plt.title(f"date and hit% with thereshold = {RET_THERES_INCLUDE_MIN}")
-plt.xticks(x, df["date"])
-plt.xticks(rotation=90)
+plt.xticks(x, df["date"], rotation=90)
 plt.legend()
 plt.savefig(GRAPH_PATH)
-plt.clf()
+
+#plt.scatter(x,df_mean["hit1"],label="hit1")
+#plt.scatter(x,df_mean["uphit1"],label="uphit1")
+#plt.scatter(x,df_mean["downhit1"],label="downhit1")
